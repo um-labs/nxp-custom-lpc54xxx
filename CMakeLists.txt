@@ -49,11 +49,11 @@ else ()
 endif ()
 
 file(GLOB DRIVER_INC_DIRS "Drivers/*/Inc" "CMSIS/Include")
-include_directories(Core/Inc  ${DRIVER_INC_DIRS})
+include_directories(${DRIVER_INC_DIRS}  Core/Inc Middlewares/FreeRTOS-Kernel/include Middlewares/FreeRTOS-Kernel/portable/GCC/ARM_CM4F)
 
 add_definitions(-DDEBUG -DCPU_LPC54608 -DCPU_LPC54608J512ET180)
 
-file(GLOB_RECURSE SOURCES "Core/*.*" "Drivers/*.*")
+file(GLOB_RECURSE SOURCES "Core/*.*" "Drivers/*.*" "Middlewares/*.*")
 
 set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/LPC54608J512_flash.ld)
 

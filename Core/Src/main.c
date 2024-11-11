@@ -5,6 +5,9 @@
 #include "pin_mux.h"
 #include <stdbool.h>
 
+#include "FreeRTOS.h"
+#include "task.h"
+
 #define LCD_PANEL_CLK 9000000
 #define LCD_HSW 2
 #define LCD_HFP 8
@@ -109,13 +112,27 @@ static void DEMO_InitLcd(void)
     GPIO_PinInit(GPIO, 3, 31, &config);
 }
 
-void fill_lcd_memory() {
+void fill_lcd_memory(uint16_t color) {
     // 将指针指向起始地址 0xA0000000
     uint16_t *lcd_ptr = (uint16_t *)DEMO_BUFFER0_ADDR;
 
     // 遍历每个像素位置并赋值
     for (int i = 0; i < LCD_WIDTH * LCD_HEIGHT; i++) {
-        lcd_ptr[i] = COLOR_RED;
+        lcd_ptr[i] = color;
+    }
+}
+
+void InitTask(void *argument)
+{
+    DEMO_InitLcd();
+    for(;;)
+    {
+        fill_lcd_memory(COLOR_RED);
+        vTaskDelay(1000);
+        fill_lcd_memory(COLOR_GREEN);
+        vTaskDelay(1000);
+        fill_lcd_memory(COLOR_BLUE);
+        vTaskDelay(1000);
     }
 }
 
@@ -125,9 +142,9 @@ int main(void)
     BOARD_BootClockPLL180M();
     BOARD_InitSDRAM();
 
-    DEMO_InitLcd();
+    xTaskCreate(InitTask,"Init",configMINIMAL_STACK_SIZE,NULL,2,NULL);
 
-    fill_lcd_memory();
+    vTaskStartScheduler();
 
     while (1)
     {
