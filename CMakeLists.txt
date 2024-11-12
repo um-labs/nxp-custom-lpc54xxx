@@ -51,22 +51,26 @@ endif ()
 file(GLOB DRIVER_INC_DIRS "Drivers/*/Inc" "CMSIS/Include")
 include_directories(${DRIVER_INC_DIRS}  Core/Inc Middlewares/FreeRTOS-Kernel/include Middlewares/FreeRTOS-Kernel/portable/GCC/ARM_CM4F)
 
-add_definitions(-DDEBUG -DCPU_LPC54608 -DCPU_LPC54608J512ET180)
+add_definitions(-DDEBUG -DCPU_LPC54608 -DCPU_LPC54608J512ET180 -DLV_LVGL_H_INCLUDE_SIMPLE)
 
 file(GLOB_RECURSE SOURCES "Core/*.*" "Drivers/*.*" "Middlewares/*.*")
 
 set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/LPC54608J512_flash.ld)
 
 #set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_BUILD_PARALLEL_LEVEL 20)
 
 add_link_options(-Wl,-gc-sections,--print-memory-usage,-Map=${PROJECT_BINARY_DIR}/${PROJECT_NAME}.map)
 add_link_options(-mcpu=cortex-m4 -mthumb -mthumb-interwork)
 add_link_options(-T ${LINKER_SCRIPT})
 add_link_options(-Wl,--no-warn-rwx-segments)
 
+add_subdirectory(Middlewares/lvgl)
+
 add_executable(${PROJECT_NAME}.elf ${SOURCES} ${LINKER_SCRIPT})
 
 target_link_libraries(${PROJECT_NAME}.elf ${CMAKE_SOURCE_DIR}/Drivers/libs/libpower_hardabi.a)
+target_link_libraries(${PROJECT_NAME}.elf lvgl)
 
 set(HEX_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.hex)
 set(BIN_FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.bin)

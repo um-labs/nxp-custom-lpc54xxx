@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include "fsl_common.h"
 #include "fsl_emc.h"
+#include "fsl_spifi.h"
 
 /*******************************************************************************
  * Definitions
@@ -22,12 +23,21 @@
 #define SDRAM_MODEREG_VALUE (0x23u)
 #define SDRAM_DEV_MEMORYMAP (0x09u) /* 128Mbits (8M*16, 4banks, 12 rows, 9 columns)*/
 
+#define SPIFI_READ (0)
+#define SPIFI_PROGRAM_PAGE (1)
+#define SPIFI_GET_STATUS (2)
+#define SPIFI_ERASE_SECTOR (3)
+#define SPIFI_WRITE_ENABLE (4)
+#define SPIFI_WRITE_REGISTER (5)
+
 /*******************************************************************************
  * Variables
  ******************************************************************************/
 
 /* Clock rate on the CLKIN pin */
 const uint32_t ExtClockIn = BOARD_EXTCLKINRATE;
+
+spifi_command_t spi_read_command = {256, false, kSPIFI_DataInput, 1, kSPIFI_CommandDataQuad, kSPIFI_CommandOpcodeAddrThreeBytes, 0x6B};
 /*******************************************************************************
  * Code
  ******************************************************************************/
@@ -75,4 +85,22 @@ void BOARD_InitSDRAM(void)
     EMC_Init(EMC, &basicConfig);
     /* EMC Dynamc memory configuration. */
     EMC_DynamicMemInit(EMC, &dynTiming, &dynChipConfig, 1);
+}
+
+void BOARD_InitSPIFI(void)
+{
+ spifi_config_t config = {0};
+ uint32_t sourceClockFreq;
+ /* Set SPIFI clock source */
+ CLOCK_AttachClk(kFRO_HF_to_SPIFI_CLK);
+ sourceClockFreq = CLOCK_GetFroHfFreq();
+
+ /* Set the clock divider */
+ CLOCK_SetClkDiv(kCLOCK_DivSpifiClk, sourceClockFreq / 96000000, false);
+
+ /* Initialize SPIFI */
+ SPIFI_GetDefaultConfig(&config);
+ SPIFI_Init(SPIFI0, &config);
+
+ SPIFI_SetMemoryCommand(SPIFI0, &spi_read_command);
 }

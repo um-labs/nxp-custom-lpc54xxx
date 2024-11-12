@@ -14,7 +14,7 @@ MEMORY
   SRAM_UPPER  (RW)  : ORIGIN = 0x20000000, LENGTH = 0x00028000  /* 上层 SRAM,起始地址 0x20000000,大小 100KB */
   SRAMX (RW)  : ORIGIN = 0x04000000, LENGTH = 0x00008000  /* SRAMX 存储器,起始地址 0x04000000,大小 32KB */
   USB_RAM (RW)  : ORIGIN = 0x40100000, LENGTH = 0x00002000  /* USB 数据 RAM,起始地址 0x40100000,大小 8KB */
-  SDRAM (RW)  : ORIGIN = 0xa0000000, LENGTH = 0x1000000  /* SDRAM,起始地址 0xA0000000,大小 16MB */
+  SDRAM (RW)  : ORIGIN = 0xa1800000, LENGTH = 0xF00000  /* SDRAM,起始地址 0xA0000000,大小 16MB - LCD缓冲区 */
 }
 
 /* 定义输出节区 */
@@ -180,6 +180,16 @@ SECTIONS
   {
     *(m_usb_global)
   } > USB_RAM  /* 存储在 USB_RAM 区域 */
+
+  .lv_offchip_flash :
+  {
+    *(.lv_offchip_flash)  /* 放置带有 LV_ATTRIBUTE_LARGE_CONST 的数据 */
+  } > OFFCHIP_FLASH
+
+  .lv_sdram  (NOLOAD) :
+  {
+    *(.lv_sdram)  /* 放置带有 LV_ATTRIBUTE_LARGE_RAM_ARRAY 的数据 */
+  } > SDRAM
 
   /* 初始化栈指针,栈指针初始化为 SRAM_UPPER 区的末尾 */
   __StackTop   = ORIGIN(SRAM_UPPER) + LENGTH(SRAM_UPPER);

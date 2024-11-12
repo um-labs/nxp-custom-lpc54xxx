@@ -14,6 +14,7 @@ extern "C" {
  ******************************************************************************/
 
 void BOARD_InitSDRAM(void);
+void BOARD_InitSPIFI(void);
 
 #if defined(__cplusplus)
 }
