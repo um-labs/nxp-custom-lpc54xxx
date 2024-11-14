@@ -3,10 +3,11 @@
 #include "fsl_common.h"
 #include "fsl_emc.h"
 #include "fsl_spifi.h"
+#include "fsl_i2c.h"
 
-/*******************************************************************************
- * Definitions
- ******************************************************************************/
+#include "FreeRTOS.h"
+#include "semphr.h"
+
 /* The SDRAM timing. */
 #define SDRAM_REFRESHPERIOD_NS (64 * 1000000 / 4096) /* 4096 rows/ 64ms */
 #define SDRAM_TRP_NS (18u)
@@ -30,17 +31,10 @@
 #define SPIFI_WRITE_ENABLE (4)
 #define SPIFI_WRITE_REGISTER (5)
 
-/*******************************************************************************
- * Variables
- ******************************************************************************/
-
 /* Clock rate on the CLKIN pin */
 const uint32_t ExtClockIn = BOARD_EXTCLKINRATE;
-
-spifi_command_t spi_read_command = {256, false, kSPIFI_DataInput, 1, kSPIFI_CommandDataQuad, kSPIFI_CommandOpcodeAddrThreeBytes, 0x6B};
-/*******************************************************************************
- * Code
- ******************************************************************************/
+static spifi_command_t spi_read_command = {256, false, kSPIFI_DataInput, 1, kSPIFI_CommandDataQuad, kSPIFI_CommandOpcodeAddrThreeBytes, 0x6B};
+static SemaphoreHandle_t s_i2cSema;
 
 /* Initialize the external memory. */
 void BOARD_InitSDRAM(void)
@@ -103,4 +97,33 @@ void BOARD_InitSPIFI(void)
  SPIFI_Init(SPIFI0, &config);
 
  SPIFI_SetMemoryCommand(SPIFI0, &spi_read_command);
+}
+
+void BOARD_InitI2C(void)
+{
+ i2c_master_config_t masterConfig;
+
+ /* attach 12 MHz clock to FLEXCOMM2 (I2C master for touch controller) */
+ CLOCK_AttachClk(kFRO12M_to_FLEXCOMM2);
+
+ I2C_MasterGetDefaultConfig(&masterConfig);
+
+ /* Change the default baudrate configuration */
+ masterConfig.baudRate_Bps = 100000U;
+
+ /* Initialize the I2C master peripheral */
+ I2C_MasterInit(I2C2, &masterConfig, CLOCK_GetFlexCommClkFreq(2));
+
+ s_i2cSema = xSemaphoreCreateMutex();
+}
+
+// I2C2这个板载I2C资源,在每个外设申请到锁后自行继续.
+void BOARD_LockI2C(void)
+{
+ xSemaphoreTake(s_i2cSema, portMAX_DELAY);
+}
+
+void BOARD_UnlockI2C(void)
+{
+ xSemaphoreGive(s_i2cSema);
 }

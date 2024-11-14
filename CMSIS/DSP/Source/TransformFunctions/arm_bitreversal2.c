@@ -3,10 +3,10 @@
  * Title:        arm_bitreversal2.c
  * Description:  Bitreversal functions
  *
- * $Date:        18. March 2019
- * $Revision:    V1.0.0
+ * $Date:        23 April 2021
+ * $Revision:    V1.9.0
  *
- * Target Processor: Cortex-M cores
+ * Target Processor: Cortex-M and Cortex-A cores
  * -------------------------------------------------------------------- */
 /*
  * Copyright (C) 2019 ARM Limited or its affiliates. All rights reserved.
@@ -26,20 +26,64 @@
  * limitations under the License.
  */
 
-#include "arm_math.h"
+#include "dsp/transform_functions.h"
 #include "arm_common_tables.h"
+
+void arm_bitreversal_64(
+        uint64_t *pSrc,
+  const uint16_t bitRevLen,
+  const uint16_t *pBitRevTab);
+
+
+/**
+  @brief         In-place 64 bit reversal function.
+  @param[in,out] pSrc        points to in-place buffer of unknown 64-bit data type
+  @param[in]     bitRevLen   bit reversal table length
+  @param[in]     pBitRevTab  points to bit reversal table
+*/
+
+ARM_DSP_ATTRIBUTE void arm_bitreversal_64(
+        uint64_t *pSrc,
+  const uint16_t bitRevLen,
+  const uint16_t *pBitRevTab)
+{
+  uint64_t a, b, tmp;
+  uint32_t i;
+
+  for (i = 0; i < bitRevLen; )
+  {
+     a = pBitRevTab[i    ] >> 2;
+     b = pBitRevTab[i + 1] >> 2;
+
+     //real
+     tmp = pSrc[a];
+     pSrc[a] = pSrc[b];
+     pSrc[b] = tmp;
+
+     //complex
+     tmp = pSrc[a+1];
+     pSrc[a+1] = pSrc[b+1];
+     pSrc[b+1] = tmp;
+
+    i += 2;
+  }
+}
+
+void arm_bitreversal_32(
+        uint32_t *pSrc,
+  const uint16_t bitRevLen,
+  const uint16_t *pBitRevTab);
 
 /**
   @brief         In-place 32 bit reversal function.
   @param[in,out] pSrc        points to in-place buffer of unknown 32-bit data type
   @param[in]     bitRevLen   bit reversal table length
   @param[in]     pBitRevTab  points to bit reversal table
-  @return        none
 */
 
-void arm_bitreversal_32(
-        uint32_t *pSrc, 
-  const uint16_t bitRevLen, 
+ARM_DSP_ATTRIBUTE void arm_bitreversal_32(
+        uint32_t *pSrc,
+  const uint16_t bitRevLen,
   const uint16_t *pBitRevTab)
 {
   uint32_t a, b, i, tmp;
@@ -63,21 +107,26 @@ void arm_bitreversal_32(
   }
 }
 
+void arm_bitreversal_16(
+        uint16_t *pSrc,
+  const uint16_t bitRevLen,
+  const uint16_t *pBitRevTab);
+
 
 /**
   @brief         In-place 16 bit reversal function.
   @param[in,out] pSrc        points to in-place buffer of unknown 16-bit data type
   @param[in]     bitRevLen   bit reversal table length
   @param[in]     pBitRevTab  points to bit reversal table
-  @return        none
 */
 
-void arm_bitreversal_16(
-        uint16_t *pSrc, 
-  const uint16_t bitRevLen, 
+ARM_DSP_ATTRIBUTE void arm_bitreversal_16(
+        uint16_t *pSrc,
+  const uint16_t bitRevLen,
   const uint16_t *pBitRevTab)
 {
-  uint16_t a, b, i, tmp;
+  uint16_t a, b, tmp;
+  uint32_t i;
 
   for (i = 0; i < bitRevLen; )
   {

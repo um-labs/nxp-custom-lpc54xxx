@@ -42,17 +42,12 @@ typedef struct _touch_point
 
 typedef struct _ft5406_handle
 {
-    I2C_Type *base;
     i2c_master_transfer_t xfer;
     uint8_t touch_buf[FT5406_TOUCH_DATA_LEN];
 } ft5406_handle_t;
 
-status_t FT5406_Init(ft5406_handle_t *handle, I2C_Type *base);
-
-status_t FT5406_Denit(ft5406_handle_t *handle);
-
+status_t FT5406_Init(ft5406_handle_t *handle);
 status_t FT5406_GetSingleTouch(ft5406_handle_t *handle, touch_event_t *touch_event, int *touch_x, int *touch_y);
-
 status_t FT5406_GetMultiTouch(ft5406_handle_t *handle, int *touch_count, touch_point_t touch_array[FT5406_MAX_TOUCHES]);
 
 #endif

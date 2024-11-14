@@ -39,10 +39,9 @@
 * -------------------------------------------------------------------- */
 
 /**
- * @ingroup groupExamples
- */
-
-/**
+ * @addtogroup groupExamples
+ * @{
+ *
  * @defgroup VarianceExample Variance Example
  *
  * \par Description:
@@ -85,13 +84,16 @@
  * <b> Refer  </b>
  * \link arm_variance_example_f32.c \endlink
  *
- */
+ * \example arm_variance_example_f32.c
+ *
+ * @} */
 
-
-/** \example arm_variance_example_f32.c
-  */
 #include <math.h>
 #include "arm_math.h"
+
+#if defined(SEMIHOSTING)
+#include <stdio.h>
+#endif
 
 /* ----------------------------------------------------------------------
 * Defines each of the tests performed
@@ -144,6 +146,11 @@ int32_t main(void)
 
   status = ARM_MATH_SUCCESS;
 
+#if defined(SEMIHOSTING)
+  printf("START\n");
+#endif
+
+ 
   /* Calculation of mean value of input */
 
   /* x' = 1/blockSize * (x(0)* 1 + x(1) * 1 + ... + x(n-1) * 1) */
@@ -188,17 +195,27 @@ int32_t main(void)
   diff = fabsf(refVarianceOut - variance);
 
   /* Comparison of variance value with reference */
-  if (diff > DELTA)
+  status = (diff > DELTA) ? ARM_MATH_TEST_FAILURE : ARM_MATH_SUCCESS;
+
+  if (status != ARM_MATH_SUCCESS)
   {
-    status = ARM_MATH_TEST_FAILURE;
+#if defined (SEMIHOSTING)
+    printf("FAILURE\n");
+#else
+    while (1);                             /* main function does not return */
+#endif
+  }
+  else
+  {
+#if defined (SEMIHOSTING)
+    printf("SUCCESS\n");
+#else
+    while (1);                             /* main function does not return */
+#endif
   }
 
-  if ( status != ARM_MATH_SUCCESS)
-  {
-    while (1);
-  }
-
-  while (1);                             /* main function does not return */
 }
 
  /** \endlink */
+
+

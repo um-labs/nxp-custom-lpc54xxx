@@ -3,13 +3,13 @@
  * Title:        arm_sin_q31.c
  * Description:  Fast sine calculation for Q31 values
  *
- * $Date:        18. March 2019
- * $Revision:    V1.6.0
+ * $Date:        23 April 2021
+ * $Revision:    V1.9.0
  *
- * Target Processor: Cortex-M cores
+ * Target Processor: Cortex-M and Cortex-A cores
  * -------------------------------------------------------------------- */
 /*
- * Copyright (C) 2010-2019 ARM Limited or its affiliates. All rights reserved.
+ * Copyright (C) 2010-2021 ARM Limited or its affiliates. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -26,7 +26,7 @@
  * limitations under the License.
  */
 
-#include "arm_math.h"
+#include "dsp/fast_math_functions.h"
 #include "arm_common_tables.h"
 
 /**
@@ -46,13 +46,18 @@
   The Q31 input value is in the range [0 +0.9999] and is mapped to a radian value in the range [0 2*PI).
  */
 
-q31_t arm_sin_q31(
+ARM_DSP_ATTRIBUTE q31_t arm_sin_q31(
   q31_t x)
 {
   q31_t sinVal;                                  /* Temporary variables for input, output */
   int32_t index;                                 /* Index variable */
   q31_t a, b;                                    /* Two nearest output values */
   q31_t fract;                                   /* Temporary values for fractional values */
+
+  if (x < 0)
+  { /* convert negative numbers to corresponding positive ones */
+    x = (uint32_t)x + 0x80000000;
+  }
 
   /* Calculate the nearest index */
   index = (uint32_t)x >> FAST_MATH_Q31_SHIFT;

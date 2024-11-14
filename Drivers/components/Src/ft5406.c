@@ -1,3 +1,4 @@
+#include "board.h"
 #include "fsl_common.h"
 #include "fsl_i2c.h"
 
@@ -24,21 +25,18 @@ typedef struct _ft5406_touch_data
 #define TOUCH_POINT_GET_X(T) ((((T).XH & 0x0f) << 8) | (T).XL)
 #define TOUCH_POINT_GET_Y(T) ((((T).YH & 0x0f) << 8) | (T).YL)
 
-status_t FT5406_Init(ft5406_handle_t *handle, I2C_Type *base)
+status_t FT5406_Init(ft5406_handle_t *handle)
 {
     i2c_master_transfer_t *xfer = &(handle->xfer);
     status_t status;
     uint8_t mode;
 
     assert(handle);
-    assert(base);
 
-    if (!handle || !base)
+    if (!handle)
     {
         return kStatus_InvalidArgument;
     }
-
-    handle->base = base;
 
     /* clear transfer structure and buffer */
     memset(xfer, 0, sizeof(*xfer));
@@ -54,7 +52,9 @@ status_t FT5406_Init(ft5406_handle_t *handle, I2C_Type *base)
     xfer->dataSize       = 1;
     xfer->flags          = kI2C_TransferDefaultFlag;
 
-    status = I2C_MasterTransferBlocking(handle->base, &handle->xfer);
+    BOARD_LockI2C();
+    status = I2C_MasterTransferBlocking(I2C2, &handle->xfer);
+    BOARD_UnlockI2C();
 
     /* prepare transfer structure for reading touch data */
     xfer->slaveAddress   = 0x38;
@@ -68,29 +68,15 @@ status_t FT5406_Init(ft5406_handle_t *handle, I2C_Type *base)
     return status;
 }
 
-status_t FT5406_Denit(ft5406_handle_t *handle)
-{
-    assert(handle);
-
-    if (!handle)
-    {
-        return kStatus_InvalidArgument;
-    }
-
-    handle->base = NULL;
-    return kStatus_Success;
-}
-
 status_t FT5406_ReadTouchData(ft5406_handle_t *handle)
 {
-    assert(handle);
+    status_t result = kStatus_Success;
 
-    if (!handle)
-    {
-        return kStatus_InvalidArgument;
-    }
+    BOARD_LockI2C();
+    result = I2C_MasterTransferBlocking(I2C2, &handle->xfer);
+    BOARD_UnlockI2C();
 
-    return I2C_MasterTransferBlocking(handle->base, &handle->xfer);
+    return result;
 }
 
 status_t FT5406_GetSingleTouch(ft5406_handle_t *handle, touch_event_t *touch_event, int *touch_x, int *touch_y)

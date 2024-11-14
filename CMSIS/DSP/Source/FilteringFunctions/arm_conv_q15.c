@@ -3,13 +3,13 @@
  * Title:        arm_conv_q15.c
  * Description:  Convolution of Q15 sequences
  *
- * $Date:        18. March 2019
- * $Revision:    V1.6.0
+ * $Date:        23 April 2021
+ * $Revision:    V1.9.0
  *
- * Target Processor: Cortex-M cores
+ * Target Processor: Cortex-M and Cortex-A cores
  * -------------------------------------------------------------------- */
 /*
- * Copyright (C) 2010-2019 ARM Limited or its affiliates. All rights reserved.
+ * Copyright (C) 2010-2021 ARM Limited or its affiliates. All rights reserved.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -26,7 +26,7 @@
  * limitations under the License.
  */
 
-#include "arm_math.h"
+#include "dsp/filtering_functions.h"
 
 /**
   @ingroup groupFilters
@@ -44,7 +44,6 @@
   @param[in]     pSrcB      points to the second input sequence
   @param[in]     srcBLen    length of the second input sequence
   @param[out]    pDst       points to the location where the output result is written.  Length srcALen+srcBLen-1.
-  @return        none
 
   @par           Scaling and Overflow Behavior
                    The function is implemented using a 64-bit internal accumulator.
@@ -59,7 +58,175 @@
                    Refer to \ref arm_conv_opt_q15() for a faster implementation of this function using scratch buffers.
  */
 
-void arm_conv_q15(
+
+#if defined(ARM_MATH_MVEI) && !defined(ARM_MATH_AUTOVECTORIZE)
+#include "arm_helium_utils.h"
+#include "arm_vec_filtering.h"
+
+
+ARM_DSP_ATTRIBUTE void arm_conv_q15(
+  const q15_t * pSrcA,
+        uint32_t srcALen,
+  const q15_t * pSrcB,
+        uint32_t srcBLen,
+        q15_t * pDst)
+{
+    const q15_t    *pIn1 = pSrcA;     /* inputA pointer               */
+    const q15_t    *pIn2 = pSrcB;     /* inputB pointer               */
+    /*
+     * Loop to perform MAC operations according to correlation equation
+     */
+    const q15_t    *pX;
+    const q15_t    *pY;
+    const q15_t    *pA;
+    const q15_t    *pB;
+    int32_t   i = 0U, j = 0;    /* loop counters */
+    int32_t   block1, block2, block3;
+
+
+
+    uint16x8_t decrIdxVec = vddupq_u16(7, 1);
+
+
+    if (srcALen < srcBLen)
+    {
+        /*
+         * Initialization to inputB pointer
+         */
+        pIn1 = pSrcB;
+        /*
+         * Initialization to the end of inputA pointer
+         */
+        pIn2 = pSrcA;
+        /*
+         * Swapping the lengths
+         */
+        j = srcALen;
+        srcALen = srcBLen;
+        srcBLen = j;
+    }
+
+    block1 = srcBLen - 1;
+    block2 = srcALen - srcBLen + 1;
+    block3 = srcBLen - 1;
+
+
+    pA = pIn1;
+    pB = pIn2 - 7;
+
+    for (i = 0; i <= block1 - 2; i += 2)
+    {
+        uint32_t  count = i + 1;
+        int64_t   acc0 = 0LL;
+        int64_t   acc1 = 0LL;
+
+        pX = pA;
+        pY = pB;
+
+        MVE_INTR_CONV_DUAL_INC_Y_INC_SIZE_Q15(acc0, acc1, pX, pY, count);
+        *pDst++ = (q15_t) acc0;
+        *pDst++ = (q15_t) acc1;
+        pB += 2;
+    }
+    for (; i < block1; i++)
+    {
+        uint32_t  count = i + 1;
+        int64_t   acc = 0LL;
+
+        pX = pA;
+        pY = pB;
+
+        MVE_INTR_CONV_SINGLE_Q15(acc, pX, pY, count);
+        *pDst++ = (q15_t) acc;
+        pB++;
+    }
+    
+    for (i = 0; i <= block2 - 4; i += 4)
+    {
+        uint32_t  count = srcBLen;
+        int64_t   acc0 = 0LL;
+        int64_t   acc1 = 0LL;
+        int64_t   acc2 = 0LL;
+        int64_t   acc3 = 0LL;
+
+        pX = pA;
+        pY = pB;
+        /*
+         * compute 4 accumulators per loop
+         * size is fixed for all accumulators
+         * X pointer is incrementing for successive accumulators
+         */
+        MVE_INTR_CONV_QUAD_INC_X_FIXED_SIZE_Q15(acc0, acc1, acc2, acc3, pX, pY, count);
+        *pDst++ = (q15_t) acc0;
+        *pDst++ = (q15_t) acc1;
+        *pDst++ = (q15_t) acc2;
+        *pDst++ = (q15_t) acc3;
+
+        pA += 4;
+    }
+    for (; i <= block2 - 2; i += 2)
+    {
+        uint32_t  count = srcBLen;
+        int64_t   acc0 = 0LL;
+        int64_t   acc1 = 0LL;
+
+        pX = pA;
+        pY = pB;
+        /*
+         * compute 2 accumulators per loop
+         * size is fixed for all accumulators
+         * X pointer is incrementing for successive accumulators
+         */
+        MVE_INTR_CONV_DUAL_INC_X_FIXED_SIZE_Q15(acc0, acc1, pX, pY, count);
+        *pDst++ = (q15_t) acc0;
+        *pDst++ = (q15_t) acc1;
+
+        pA += 2;
+    }
+    if (block2 & 1)
+    {
+        uint32_t  count = srcBLen;
+        int64_t   acc = 0LL;
+
+        pX = pA;
+        pY = pB;
+
+        MVE_INTR_CONV_SINGLE_Q15(acc, pX, pY, count);
+        *pDst++ = (q15_t) acc;
+        pA++;
+    }
+
+    for (i = block3; i >= 2; i -= 2)
+    {
+        uint32_t  count = i;
+        int64_t   acc0 = 0LL;
+        int64_t   acc1 = 0LL;
+
+        pX = pA;
+        pY = pB;
+
+        MVE_INTR_CONV_DUAL_INC_X_DEC_SIZE_Q15(acc0, acc1, pX, pY, count);
+        *pDst++ = (q15_t) acc0;
+        *pDst++ = (q15_t) acc1;
+        pA += 2;
+    }
+    for (; i > 0; i--)
+    {
+        uint32_t  count = i;
+        int64_t   acc = 0LL;
+
+        pX = pA;
+        pY = pB;
+
+        MVE_INTR_CONV_SINGLE_Q15(acc, pX, pY, count);
+        *pDst++ = (q15_t) acc;
+        pA++;
+    }
+
+
+}
+#else
+ARM_DSP_ATTRIBUTE void arm_conv_q15(
   const q15_t * pSrcA,
         uint32_t srcALen,
   const q15_t * pSrcB,
@@ -79,6 +246,8 @@ void arm_conv_q15(
         q31_t x0, x1, x2, x3, c0;                      /* Temporary input variables to hold state and coefficient values */
         uint32_t blockSize1, blockSize2, blockSize3;   /* Loop counters */
         uint32_t j, k, count, blkCnt;                  /* Loop counters */
+
+
 
   /* The algorithm implementation is based on the lengths of the inputs. */
   /* srcB is always made to slide across srcA. */
@@ -118,6 +287,9 @@ void arm_conv_q15(
      The loop counters of each stage is initiated here. */
   blockSize1 = srcBLen - 1U;
   blockSize2 = srcALen - (srcBLen - 1U);
+
+
+
 
   /* --------------------------
    * Initializations of stage1
@@ -425,14 +597,19 @@ void arm_conv_q15(
       }
 
       /* Store the result in the accumulator in the destination buffer. */
+      {
+        int32_t sat0 = __SSAT((acc0 >> 15), 16);
+        int32_t sat1 = __SSAT((acc1 >> 15), 16);
+        int32_t sat2 = __SSAT((acc2 >> 15), 16);
+        int32_t sat3 = __SSAT((acc3 >> 15), 16);
 #ifndef  ARM_MATH_BIG_ENDIAN
-      write_q15x2_ia (&pOut, __PKHBT(__SSAT((acc0 >> 15), 16), __SSAT((acc1 >> 15), 16), 16));
-      write_q15x2_ia (&pOut, __PKHBT(__SSAT((acc2 >> 15), 16), __SSAT((acc3 >> 15), 16), 16));
+        write_q15x2_ia (&pOut, __PKHBT(sat0, sat1, 16));
+        write_q15x2_ia (&pOut, __PKHBT(sat2, sat3, 16));
 #else
-      write_q15x2_ia (&pOut, __PKHBT(__SSAT((acc1 >> 15), 16), __SSAT((acc0 >> 15), 16), 16));
-      write_q15x2_ia (&pOut, __PKHBT(__SSAT((acc3 >> 15), 16), __SSAT((acc2 >> 15), 16), 16));
+        write_q15x2_ia (&pOut, __PKHBT(sat1, sat0, 16));
+        write_q15x2_ia (&pOut, __PKHBT(sat3, sat2, 16));
 #endif /*      #ifndef  ARM_MATH_BIG_ENDIAN    */
-
+      }
       /* Increment the pointer pIn1 index, count by 4 */
       count += 4U;
 
@@ -690,6 +867,7 @@ void arm_conv_q15(
 #endif /* #if defined (ARM_MATH_DSP) */
 
 }
+#endif /* defined(ARM_MATH_MVEI) */
 
 /**
   @} end of Conv group

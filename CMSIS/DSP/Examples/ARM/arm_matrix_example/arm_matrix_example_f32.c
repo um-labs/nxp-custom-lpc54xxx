@@ -40,10 +40,9 @@
  * -------------------------------------------------------------------- */
 
 /**
- * @ingroup groupExamples
- */
-
-/**
+ * @addtogroup groupExamples
+ * @{
+ *
  * @defgroup MatrixExample Matrix Example
  *
  * \par Description:
@@ -66,7 +65,6 @@
  *
  * \par Block Diagram:
  * \par
- * \image html matrixExample.gif
  *
  * \par Variables Description:
  * \par
@@ -84,16 +82,18 @@
  * <b> Refer  </b>
  * \link arm_matrix_example_f32.c \endlink
  *
- */
-
-
-/** \example arm_matrix_example_f32.c
-  */
+ * \example arm_matrix_example_f32.c
+ *
+ * @} */
 
 #include "arm_math.h"
 #include "math_helper.h"
 
-#define SNR_THRESHOLD   90
+#if defined(SEMIHOSTING)
+#include <stdio.h>
+#endif
+
+#define SNR_THRESHOLD   77
 
 /* --------------------------------------------------------------------------------
 * Test input data(Cycles) taken from FIR Q15 module for differant cases of blockSize
@@ -208,26 +208,25 @@ int32_t main(void)
   /*------------------------------------------------------------------------------
   *            Initialise status depending on SNR calculations
   *------------------------------------------------------------------------------*/
-  if ( snr > SNR_THRESHOLD)
+  status = (snr < SNR_THRESHOLD) ? ARM_MATH_TEST_FAILURE : ARM_MATH_SUCCESS;
+  
+  if (status != ARM_MATH_SUCCESS)
   {
-    status = ARM_MATH_SUCCESS;
+#if defined (SEMIHOSTING)
+    printf("FAILURE\n");
+#else
+    while (1);                             /* main function does not return */
+#endif
   }
   else
   {
-    status = ARM_MATH_TEST_FAILURE;
+#if defined (SEMIHOSTING)
+    printf("SUCCESS\n");
+#else
+    while (1);                             /* main function does not return */
+#endif
   }
 
-
-  /* ----------------------------------------------------------------------
-  ** Loop here if the signals fail the PASS check.
-  ** This denotes a test failure
-  ** ------------------------------------------------------------------- */
-  if ( status != ARM_MATH_SUCCESS)
-  {
-    while (1);
-  }
-
-  while (1);                             /* main function does not return */
 }
 
  /** \endlink */

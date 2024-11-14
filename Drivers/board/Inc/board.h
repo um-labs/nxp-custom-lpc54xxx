@@ -16,6 +16,10 @@ extern "C" {
 void BOARD_InitSDRAM(void);
 void BOARD_InitSPIFI(void);
 
+void BOARD_InitI2C(void);
+void BOARD_LockI2C(void);
+void BOARD_UnlockI2C(void);
+
 #if defined(__cplusplus)
 }
 #endif /* __cplusplus */

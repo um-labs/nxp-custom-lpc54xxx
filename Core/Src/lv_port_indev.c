@@ -79,7 +79,6 @@ void lv_port_indev_init(void)
 static void touchpad_init(void)
 {
   status_t status;
-  i2c_master_config_t masterConfig;
   gpio_pin_config_t pin_config = {
    kGPIO_DigitalOutput,
    0,
@@ -87,23 +86,12 @@ static void touchpad_init(void)
 
   CLOCK_EnableClock(kCLOCK_Gpio2);
 
-  /* attach 12 MHz clock to FLEXCOMM2 (I2C master for touch controller) */
-  CLOCK_AttachClk(kFRO12M_to_FLEXCOMM2);
-
-  I2C_MasterGetDefaultConfig(&masterConfig);
-
-  /* Change the default baudrate configuration */
-  masterConfig.baudRate_Bps = 100000U;
-
-  /* Initialize the I2C master peripheral */
-  I2C_MasterInit(I2C2, &masterConfig, CLOCK_GetFlexCommClkFreq(2));
-
   /* 复位引脚 */
   GPIO_PinInit(GPIO, 2, 27, &pin_config);
   GPIO_PinWrite(GPIO, 2, 27, 1);
 
   /* Initialize touch panel controller */
-  status = FT5406_Init(&touchHandle, I2C2);
+  status = FT5406_Init(&touchHandle);
   if (status != kStatus_Success)
   {
    assert(0);

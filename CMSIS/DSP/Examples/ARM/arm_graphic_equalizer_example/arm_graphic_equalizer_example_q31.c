@@ -40,10 +40,9 @@
  * -------------------------------------------------------------------- */
 
 /**
- * @ingroup groupExamples
- */
-
-/**
+ * @addtogroup groupExamples
+ * @{
+ *
  * @defgroup GEQ5Band Graphic Audio Equalizer Example
  *
  * \par Description:
@@ -119,15 +118,16 @@
  * <b> Refer  </b>
  * \link arm_graphic_equalizer_example_q31.c \endlink
  *
- */
-
-
-/** \example arm_graphic_equalizer_example_q31.c
- */
-
+ * \example arm_graphic_equalizer_example_q31.c
+ *
+ * @} */
 
 #include "arm_math.h"
 #include "math_helper.h"
+
+#if defined(SEMIHOSTING)
+#include <stdio.h>
+#endif
 
 /* Length of the overall data in the test */
 #define TESTLENGTH 320
@@ -384,25 +384,25 @@ int32_t main(void)
 
   snr = arm_snr_f32(testRefOutput_f32, testOutput, TESTLENGTH);
 
-  if (snr < SNR_THRESHOLD_F32)
+  status = (snr < SNR_THRESHOLD_F32) ? ARM_MATH_TEST_FAILURE : ARM_MATH_SUCCESS;
+  
+  if (status != ARM_MATH_SUCCESS)
   {
-    status = ARM_MATH_TEST_FAILURE;
+#if defined (SEMIHOSTING)
+    printf("FAILURE\n");
+#else
+    while (1);                             /* main function does not return */
+#endif
   }
   else
   {
-    status = ARM_MATH_SUCCESS;
+#if defined (SEMIHOSTING)
+    printf("SUCCESS\n");
+#else
+    while (1);                             /* main function does not return */
+#endif
   }
 
-  /* ----------------------------------------------------------------------
-  ** Loop here if the signal does not match the reference output.
-  ** ------------------------------------------------------------------- */
-
-  if ( status != ARM_MATH_SUCCESS)
-  {
-    while (1);
-  }
-
-  while (1);                             /* main function does not return */
 }
 
 /** \endlink */

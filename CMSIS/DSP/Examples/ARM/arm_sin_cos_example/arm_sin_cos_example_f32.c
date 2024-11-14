@@ -39,10 +39,9 @@
 * -------------------------------------------------------------------- */
 
 /**
- * @ingroup groupExamples
- */
-
-/**
+ * @addtogroup groupExamples
+ * @{
+ *
  * @defgroup SinCosExample SineCosine Example
  *
  * \par Description:
@@ -75,14 +74,16 @@
  * <b> Refer  </b>
  * \link arm_sin_cos_example_f32.c \endlink
  *
- */
-
-
-/** \example arm_sin_cos_example_f32.c
-  */
+ * \example arm_sin_cos_example_f32.c
+ *
+ * @} */
 
 #include <math.h>
 #include "arm_math.h"
+
+#if defined(SEMIHOSTING)
+#include <stdio.h>
+#endif
 
 /* ----------------------------------------------------------------------
 * Defines each of the tests performed
@@ -143,19 +144,31 @@ int32_t main(void)
     diff = fabsf(testRefOutput_f32 - testOutput);
 
     /* Comparison of sin_cos value with reference */
-    if (diff > DELTA)
-    {
-       status = ARM_MATH_TEST_FAILURE;
-    }
+    status = (diff > DELTA) ? ARM_MATH_TEST_FAILURE : ARM_MATH_SUCCESS;
 
     if ( status == ARM_MATH_TEST_FAILURE)
     {
-       while (1);
+       break;
     }
-
   }
 
-  while (1);                             /* main function does not return */
+  if (status != ARM_MATH_SUCCESS)
+  {
+#if defined (SEMIHOSTING)
+    printf("FAILURE\n");
+#else
+    while (1);                             /* main function does not return */
+#endif
+  }
+  else
+  {
+#if defined (SEMIHOSTING)
+    printf("SUCCESS\n");
+#else
+    while (1);                             /* main function does not return */
+#endif
+  }
+
 }
 
  /** \endlink */
